@@ -4,9 +4,11 @@ const cors = require("cors");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 const MONGO = process.env.MONGOURL;
+
 app.use(express.json());
 
 app.use(
@@ -64,17 +66,20 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
+// Get all tasks
 app.get("/tasks", authMiddleware, async (req, res) => {
   const tasks = await Task.find({ userId: req.userId });
   res.json(tasks);
 });
 
+// Create task
 app.post("/tasks", authMiddleware, async (req, res) => {
   const task = new Task({ ...req.body, userId: req.userId });
   await task.save();
   res.json(task);
 });
 
+// Delete task
 app.delete("/tasks/:id", authMiddleware, async (req, res) => {
   await Task.findOneAndDelete({ _id: req.params.id, userId: req.userId });
   res.json({ message: "Task deleted" });
@@ -104,4 +109,16 @@ app.patch("/tasks/:id/priority", authMiddleware, async (req, res) => {
   res.json(task);
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Edit task
+app.patch("/tasks/:id", authMiddleware, async (req, res) => {
+  const { text } = req.body;
+  const task = await Task.findOneAndUpdate(
+    { _id: req.params.id, userId: req.userId },
+    { text },
+    { new: true }
+  );
+  if (!task) return res.status(404).json({ message: "Task not found" });
+  res.json(task);
+});
+
+app.listen(PORT, () => console.log("Server running on port:8080"));
